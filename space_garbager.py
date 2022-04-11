@@ -7,7 +7,10 @@ from time import time, sleep
 
 from curses_tools import draw_frame, read_controls, get_frame_size
 
-TIC_TIMEOUT = 0.1
+TIC_TIMEOUT = 0.08
+COUNT_STARS = 200
+ROCKET_SPEED = 2
+BULLET_SPEED = 2.5
 
 
 async def blink(canvas, row, column, symbol='*'):
@@ -27,12 +30,12 @@ async def blink(canvas, row, column, symbol='*'):
         while time() < nexttime:
             await asyncio.sleep(0)
         canvas.addstr(row, column, symbol)
-        nexttime += timing[2]
+        nexttime += timing[3]
         while time() < nexttime:
             await asyncio.sleep(0)
 
 
-async def fire(canvas, start_row, start_column, rows_speed=-0.5, columns_speed=0):
+async def fire(canvas, start_row, start_column, rows_speed=-BULLET_SPEED, columns_speed=0):
     """Display animation of gun shot, direction and speed can be specified."""
     row, column = start_row, start_column
     canvas.addstr(round(row), round(column), '*')
@@ -54,53 +57,70 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.5, columns_speed=0
         column += columns_speed
 
 
-async def rocket(canvas, rocket_param):
-    frames = rocket_param['frames']
-    position = rocket_param['position']
+async def fly_rocket(canvas, position, frames):
     frame_gen = cycle(frames)
-    while True:
+    for frame in frame_gen:
         frame_position = position.copy()
-        frame = next(frame_gen)
-        draw_frame(canvas, frame_position[0], frame_position[1], frame, False)
+        draw_frame(canvas, frame_position['row'], frame_position['col'], frame, False)
         await asyncio.sleep(0)
-        draw_frame(canvas, frame_position[0], frame_position[1], frame, True)
+        draw_frame(canvas, frame_position['row'], frame_position['col'], frame, True)
 
 
-def load_rocket(canvas):
+def load_frames(filelist):
     frames = []
-    for file in ['rocket_frame_1.txt', 'rocket_frame_2.txt']:
+    for file in filelist:
         with open(os.path.join('files', file), 'r') as frame:
             frames.append(str(frame.read()))
-    frame_size = list(map(lambda a, b: max(a, b), get_frame_size(frames[0]), get_frame_size(frames[1])))
-    workspace = list(map(lambda a, b: a - b - 1, list(canvas.getmaxyx()), frame_size))
-    position = [workspace[i] // 2 for i in range(2)]
-    return {'frames': frames, 'workspace': workspace, 'position': position}
+    return frames
+
+
+def get_max_sizes(frames):
+    transposed_sizes = list(zip(*[get_frame_size(frame) for frame in frames]))
+    return max(transposed_sizes[0]), max(transposed_sizes[1])
 
 
 def draw(canvas):
     curses.curs_set(False)
     canvas.nodelay(True)
     canvas.border()
-    workspace = [i - 2 for i in list(canvas.getmaxyx())]
-    unic_point = set((randint(1, workspace[0]), randint(1, workspace[1])) for _ in range(110))
-    corutines = [blink(canvas, point[0], point[1], symbol=choice('+*.:'[:])) for point in unic_point]
-    rocket_param = load_rocket(canvas)
-    corutines.append(rocket(canvas, rocket_param))
+    max_row, max_col = canvas.getmaxyx()
+    max_row, max_col = max_row - 1, max_col - 1
+    canvas.addstr(max_row, 2, f' max_row={max_row}, max_col={max_col} ')
+    unic_points = set()
+    coroutines = []
+    while len(unic_points) < COUNT_STARS:
+        star_row, star_col = randint(1, max_row - 1), randint(1, max_col - 1)
+        if (star_row, star_col) not in unic_points:
+            coroutines.append(blink(canvas, star_row, star_col, symbol=choice(list('+*.:'))))
+            unic_points.add((star_row, star_col))
+    rocket_frames = load_frames(['rocket_frame_1.txt', 'rocket_frame_2.txt'])
+    rocket_height, rocket_width = get_max_sizes(rocket_frames)
+    rocket_pos = {'row': (max_row - rocket_height) // 2,
+                  'col': (max_col - rocket_width) // 2
+                  }
+    coroutines.append(fly_rocket(canvas, rocket_pos, rocket_frames))
+    fps_time = time()
     while True:
-        for cor in corutines:
+        for cor in coroutines.copy():
             try:
                 cor.send(None)
             except StopIteration:
-                corutines.remove(cor)
+                coroutines.remove(cor)
+        canvas.addstr(max_row, 30, f' FPS={1 / (time() - fps_time):6.2f} ')
+        fps_time = time()
         canvas.refresh()
         sleep(TIC_TIMEOUT)
-        commands = read_controls(canvas)
-        rocket_param['position'][0] = min(max(rocket_param['position'][0] + commands[0]*2, 1),
-                                          rocket_param['workspace'][0])
-        rocket_param['position'][1] = min(max(rocket_param['position'][1] + commands[1]*2, 1),
-                                          rocket_param['workspace'][1])
-        if commands[2] and rocket_param['position'][0] > 2:
-            corutines.append(fire(canvas, rocket_param['position'][0] - 1, rocket_param['position'][1] + 2))
+        rows_direction, columns_direction, space_pressed = read_controls(canvas)
+        rocket_pos['row'] = min(
+            max(1, rocket_pos['row'] + rows_direction * ROCKET_SPEED),
+            max_row - rocket_height
+        )
+        rocket_pos['col'] = min(
+            max(1, rocket_pos['col'] + columns_direction * ROCKET_SPEED),
+            max_col - rocket_width
+        )
+        if space_pressed and rocket_pos['row'] > 2:
+            coroutines.append(fire(canvas, rocket_pos['row'] - 1, rocket_pos['col'] + 2))
 
 
 if __name__ == '__main__':
