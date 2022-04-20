@@ -1,27 +1,30 @@
 import asyncio
 import curses
 import os
-from itertools import cycle
-from random import randint, choice, random
 import time
+from itertools import cycle
+from random import randint, choice
 
 from curses_tools import draw_frame, read_controls, get_frame_size
+from physics import update_speed
 
 TIC_TIMEOUT = 0.05
 COUNT_STARS = 200
 ROCKET_SPEED = 2
 BULLET_SPEED = 2.5
 
-COROUTINES=[]
+COROUTINES = []
+
 
 async def sleep(tics=1):
     for tic in range(tics):
         await asyncio.sleep(0)
 
+
 async def blink(canvas, row, column, symbol='*'):
     timing = [2.0, 0.3, 0.5, 0.3]
-    tics=[int(delay/TIC_TIMEOUT) for delay in timing]
-    await sleep(randint(0,int(sum(timing)/TIC_TIMEOUT)))
+    tics = [int(delay / TIC_TIMEOUT) for delay in timing]
+    await sleep(randint(0, int(sum(timing) / TIC_TIMEOUT)))
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
         await sleep(tics[0])
@@ -76,14 +79,15 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
         draw_frame(canvas, row, column, garbage_frame, negative=True)
         row += speed
 
+
 async def fill_orbit_with_garbage(canvas):
     garbage_frames = load_frames(
         ['duck.txt', 'hubble.txt', 'lamp.txt', 'trash_large.txt', 'trash_small.txt', 'trash_xl.txt'])
     while True:
-        frame=choice(garbage_frames)
-        column=randint(1,canvas.getmaxyx()[1]-get_frame_size(frame)[1])
+        frame = choice(garbage_frames)
+        column = randint(1, canvas.getmaxyx()[1] - get_frame_size(frame)[1])
         COROUTINES.append(fly_garbage(canvas, column=column, garbage_frame=frame))
-        await sleep(randint(0, 5//TIC_TIMEOUT))
+        await sleep(randint(0, 5 // TIC_TIMEOUT))
 
 
 def load_frames(filelist):
@@ -112,10 +116,13 @@ def draw(canvas):
             unic_points.add((star_row, star_col))
     rocket_frames = load_frames(['rocket_frame_1.txt', 'rocket_frame_2.txt'])
     rocket_height, rocket_width = get_max_sizes(rocket_frames)
-    rocket_pos = {'row': (max_row - rocket_height) // 2,
-                  'col': (max_col - rocket_width) // 2
-                  }
-    COROUTINES.append(fly_rocket(canvas, rocket_pos, rocket_frames))
+    rocket = {'row': (max_row - rocket_height) // 2,
+              'col': (max_col - rocket_width) // 2,
+              'row_speed': 0,
+              'col_speed': 0,
+              }
+
+    COROUTINES.append(fly_rocket(canvas, rocket, rocket_frames))
     COROUTINES.append(fill_orbit_with_garbage(canvas))
     fps_time = time.time()
     while True:
@@ -130,16 +137,18 @@ def draw(canvas):
         canvas.refresh()
         time.sleep(TIC_TIMEOUT)
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
-        rocket_pos['row'] = min(
-            max(1, rocket_pos['row'] + rows_direction * ROCKET_SPEED),
+        rocket['row_speed'], rocket['col_speed'] = update_speed(rocket['row_speed'], rocket['col_speed'],
+                                                                rows_direction, columns_direction)
+        rocket['row'] = min(
+            max(1, rocket['row'] + rocket['row_speed']),
             max_row - rocket_height
         )
-        rocket_pos['col'] = min(
-            max(1, rocket_pos['col'] + columns_direction * ROCKET_SPEED),
+        rocket['col'] = min(
+            max(1, rocket['col'] + rocket['col_speed']),
             max_col - rocket_width
         )
-        if space_pressed and rocket_pos['row'] > 2:
-            COROUTINES.append(fire(canvas, rocket_pos['row'] - 1, rocket_pos['col'] + 2))
+        if space_pressed and rocket['row'] > 2:
+            COROUTINES.append(fire(canvas, rocket['row'] - 1, rocket['col'] + 2))
 
 
 if __name__ == '__main__':
