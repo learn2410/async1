@@ -3,37 +3,34 @@ import curses
 import os
 from itertools import cycle
 from random import randint, choice, random
-from time import time, sleep
+import time
 
 from curses_tools import draw_frame, read_controls, get_frame_size
 
-TIC_TIMEOUT = 0.08
+TIC_TIMEOUT = 0.05
 COUNT_STARS = 200
 ROCKET_SPEED = 2
 BULLET_SPEED = 2.5
 
 COROUTINES=[]
 
+async def sleep(tics=1):
+    for tic in range(tics):
+        await asyncio.sleep(0)
+
 async def blink(canvas, row, column, symbol='*'):
     timing = [2.0, 0.3, 0.5, 0.3]
-    nexttime = time() + round(random() * 3, 1)
+    tics=[int(delay/TIC_TIMEOUT) for delay in timing]
+    await sleep(randint(0,int(sum(timing)/TIC_TIMEOUT)))
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        nexttime += timing[0]
-        while time() < nexttime:
-            await asyncio.sleep(0)
+        await sleep(tics[0])
         canvas.addstr(row, column, symbol)
-        nexttime += timing[1]
-        while time() < nexttime:
-            await asyncio.sleep(0)
+        await sleep(tics[1])
         canvas.addstr(row, column, symbol, curses.A_BOLD)
-        nexttime += timing[2]
-        while time() < nexttime:
-            await asyncio.sleep(0)
+        await sleep(tics[2])
         canvas.addstr(row, column, symbol)
-        nexttime += timing[3]
-        while time() < nexttime:
-            await asyncio.sleep(0)
+        await sleep(tics[3])
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-BULLET_SPEED, columns_speed=0):
@@ -83,12 +80,10 @@ async def fill_orbit_with_garbage(canvas):
     garbage_frames = load_frames(
         ['duck.txt', 'hubble.txt', 'lamp.txt', 'trash_large.txt', 'trash_small.txt', 'trash_xl.txt'])
     while True:
-        nexttime = time() + randint(0, 6)
         frame=choice(garbage_frames)
         column=randint(1,canvas.getmaxyx()[1]-get_frame_size(frame)[1])
         COROUTINES.append(fly_garbage(canvas, column=column, garbage_frame=frame))
-        while time() < nexttime:
-            await asyncio.sleep(0)
+        await sleep(randint(0, 5//TIC_TIMEOUT))
 
 
 def load_frames(filelist):
@@ -122,7 +117,7 @@ def draw(canvas):
                   }
     COROUTINES.append(fly_rocket(canvas, rocket_pos, rocket_frames))
     COROUTINES.append(fill_orbit_with_garbage(canvas))
-    fps_time = time()
+    fps_time = time.time()
     while True:
         for cor in COROUTINES.copy():
             try:
@@ -130,10 +125,10 @@ def draw(canvas):
             except StopIteration:
                 COROUTINES.remove(cor)
         canvas.border()
-        canvas.addstr(max_row, 3, f' FPS={1 / (time() - fps_time):6.2f} ')
-        fps_time = time()
+        canvas.addstr(max_row, 3, f' FPS={1 / (time.time() - fps_time):6.2f} ')
+        fps_time = time.time()
         canvas.refresh()
-        sleep(TIC_TIMEOUT)
+        time.sleep(TIC_TIMEOUT)
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
         rocket_pos['row'] = min(
             max(1, rocket_pos['row'] + rows_direction * ROCKET_SPEED),
