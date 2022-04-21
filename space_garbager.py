@@ -56,6 +56,9 @@ async def fire(canvas, start_row, start_column, rows_speed=-BULLET_SPEED, column
         canvas.addstr(round(row), round(column), symbol)
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), ' ')
+        for obstale in OBSTACLES.values():
+            if obstale.has_collision(round(row),round(column),round(rows_speed)):
+                return
         row += rows_speed
         column += columns_speed
 
@@ -142,7 +145,7 @@ def draw(canvas):
             except StopIteration:
                 COROUTINES.remove(cor)
         canvas.border()
-        canvas.addstr(max_row, 3, f' FPS={1 / (time.time() - fps_time):6.2f} ')
+        canvas.addstr(max_row, 3, f' FPS={1 / (time.time() - fps_time+0.00000001):6.2f} ')
         fps_time = time.time()
         canvas.refresh()
         time.sleep(TIC_TIMEOUT)
