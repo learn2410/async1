@@ -9,6 +9,7 @@ from curses_tools import draw_frame, read_controls, get_frame_size
 from physics import update_speed
 from obstacles import Obstacle, show_obstacles
 from explosion import explode
+from operator import sub
 
 TIC_TIMEOUT = 0.05
 COUNT_STARS = 200
@@ -18,7 +19,7 @@ BULLET_SPEED = 2.5
 COROUTINES = []
 OBSTACLES = {}
 OBSTACLES_IN_LAST_COLLISIONS=[]
-
+GAME_OVER=[False]
 
 async def sleep(tics=1):
     for tic in range(tics):
@@ -68,11 +69,17 @@ async def fire(canvas, start_row, start_column, rows_speed=-BULLET_SPEED, column
 
 async def fly_rocket(canvas, position, frames):
     frame_gen = cycle(frames)
+    height,width=get_max_sizes(frames)
     for frame in frame_gen:
         frame_position = position.copy()
         draw_frame(canvas, frame_position['row'], frame_position['col'], frame, False)
         await asyncio.sleep(0)
         draw_frame(canvas, frame_position['row'], frame_position['col'], frame, True)
+        for uid, obstale in OBSTACLES.items():
+            if obstale.has_collision(position['row'], position['col'], height,width):
+                OBSTACLES_IN_LAST_COLLISIONS.append(uid)
+                GAME_OVER[0]=True
+                return
 
 
 async def fly_garbage(canvas, column, garbage_frame,garbage_uid,speed=0.5):
@@ -133,6 +140,9 @@ def draw(canvas):
         if (star_row, star_col) not in unic_points:
             COROUTINES.append(blink(canvas, star_row, star_col, symbol=choice(list('+*.:'))))
             unic_points.add((star_row, star_col))
+    game_over_frame=load_frames(['game_over.txt'])[0]
+    game_over_row = (max_row - get_frame_size(game_over_frame)[0])//2
+    game_over_col = (max_col - get_frame_size(game_over_frame)[1])//2
     rocket_frames = load_frames(['rocket_frame_1.txt', 'rocket_frame_2.txt'])
     rocket_height, rocket_width = get_max_sizes(rocket_frames)
     rocket = {'row': (max_row - rocket_height) // 2,
@@ -156,6 +166,8 @@ def draw(canvas):
         canvas.border()
         canvas.addstr(max_row, 3, f' FPS={1 / (time.time() - fps_time+0.00000001):6.2f} ')
         fps_time = time.time()
+        if GAME_OVER[0]:
+            draw_frame(canvas, game_over_row, game_over_col, game_over_frame)
         canvas.refresh()
         time.sleep(TIC_TIMEOUT)
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
@@ -169,7 +181,7 @@ def draw(canvas):
             max(1, rocket['col'] + rocket['col_speed']),
             max_col - rocket_width
         )
-        if space_pressed and rocket['row'] > 2:
+        if space_pressed and rocket['row'] > 2 and not GAME_OVER[0]:
             COROUTINES.append(fire(canvas, rocket['row'] - 1, rocket['col'] + 2))
 
 
