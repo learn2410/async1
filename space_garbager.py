@@ -7,6 +7,7 @@ from random import randint, choice
 
 from curses_tools import draw_frame, read_controls, get_frame_size
 from physics import update_speed
+from obstacles import Obstacle, show_obstacles
 
 TIC_TIMEOUT = 0.05
 COUNT_STARS = 200
@@ -14,6 +15,7 @@ ROCKET_SPEED = 2
 BULLET_SPEED = 2.5
 
 COROUTINES = []
+OBSTACLES = {}
 
 
 async def sleep(tics=1):
@@ -67,26 +69,31 @@ async def fly_rocket(canvas, position, frames):
         draw_frame(canvas, frame_position['row'], frame_position['col'], frame, True)
 
 
-async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
+async def fly_garbage(canvas, column, garbage_frame,garbage_uid,speed=0.5):
     """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
-    rows_number, columns_number = canvas.getmaxyx()
+    uid=garbage_uid
+    rows_number, cols_number = canvas.getmaxyx()
+    rows_size,cols_size = get_frame_size(garbage_frame)
     column = max(column, 0)
-    column = min(column, columns_number - 1)
+    column = min(column, cols_number - 1)
     row = 0
+    OBSTACLES.update({uid:Obstacle(0,column,rows_size,cols_size,uid)})
     while row < rows_number:
         draw_frame(canvas, row, column, garbage_frame)
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, garbage_frame, negative=True)
         row += speed
+        OBSTACLES[uid].row=row
+    del OBSTACLES[uid]
 
 
 async def fill_orbit_with_garbage(canvas):
     garbage_frames = load_frames(
         ['duck.txt', 'hubble.txt', 'lamp.txt', 'trash_large.txt', 'trash_small.txt', 'trash_xl.txt'])
-    while True:
+    for uid in cycle((num for num in range(64000))):
         frame = choice(garbage_frames)
         column = randint(1, canvas.getmaxyx()[1] - get_frame_size(frame)[1])
-        COROUTINES.append(fly_garbage(canvas, column=column, garbage_frame=frame))
+        COROUTINES.append(fly_garbage(canvas, column=column, garbage_frame=frame,garbage_uid=uid))
         await sleep(randint(0, 5 // TIC_TIMEOUT))
 
 
@@ -124,7 +131,10 @@ def draw(canvas):
 
     COROUTINES.append(fly_rocket(canvas, rocket, rocket_frames))
     COROUTINES.append(fill_orbit_with_garbage(canvas))
+    COROUTINES.append( show_obstacles(canvas,OBSTACLES))
+
     fps_time = time.time()
+
     while True:
         for cor in COROUTINES.copy():
             try:
