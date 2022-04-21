@@ -16,6 +16,7 @@ BULLET_SPEED = 2.5
 
 COROUTINES = []
 OBSTACLES = {}
+OBSTACLES_IN_LAST_COLLISIONS=[]
 
 
 async def sleep(tics=1):
@@ -56,8 +57,9 @@ async def fire(canvas, start_row, start_column, rows_speed=-BULLET_SPEED, column
         canvas.addstr(round(row), round(column), symbol)
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), ' ')
-        for obstale in OBSTACLES.values():
+        for uid,obstale in OBSTACLES.items():
             if obstale.has_collision(round(row),round(column),round(rows_speed)):
+                OBSTACLES_IN_LAST_COLLISIONS.append(uid)
                 return
         row += rows_speed
         column += columns_speed
@@ -74,20 +76,25 @@ async def fly_rocket(canvas, position, frames):
 
 async def fly_garbage(canvas, column, garbage_frame,garbage_uid,speed=0.5):
     """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
-    uid=garbage_uid
-    rows_number, cols_number = canvas.getmaxyx()
-    rows_size,cols_size = get_frame_size(garbage_frame)
-    column = max(column, 0)
-    column = min(column, cols_number - 1)
-    row = 0
-    OBSTACLES.update({uid:Obstacle(0,column,rows_size,cols_size,uid)})
-    while row < rows_number:
-        draw_frame(canvas, row, column, garbage_frame)
-        await asyncio.sleep(0)
-        draw_frame(canvas, row, column, garbage_frame, negative=True)
-        row += speed
-        OBSTACLES[uid].row=row
-    del OBSTACLES[uid]
+#TODO try finall
+    try:
+        uid=garbage_uid
+        rows_number, cols_number = canvas.getmaxyx()
+        rows_size,cols_size = get_frame_size(garbage_frame)
+        column = max(column, 0)
+        column = min(column, cols_number - 1)
+        row = 0
+        OBSTACLES.update({uid:Obstacle(0,column,rows_size,cols_size,uid)})
+        while row < rows_number and uid not in OBSTACLES_IN_LAST_COLLISIONS:
+            draw_frame(canvas, row, column, garbage_frame)
+            await asyncio.sleep(0)
+            draw_frame(canvas, row, column, garbage_frame, negative=True)
+            row += speed
+            OBSTACLES[uid].row=row
+    finally:
+        del OBSTACLES[uid]
+        if uid in OBSTACLES_IN_LAST_COLLISIONS:
+            OBSTACLES_IN_LAST_COLLISIONS.remove(uid)
 
 
 async def fill_orbit_with_garbage(canvas):
