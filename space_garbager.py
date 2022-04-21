@@ -8,6 +8,7 @@ from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
 from physics import update_speed
 from obstacles import Obstacle, show_obstacles
+from explosion import explode
 
 TIC_TIMEOUT = 0.05
 COUNT_STARS = 200
@@ -95,6 +96,7 @@ async def fly_garbage(canvas, column, garbage_frame,garbage_uid,speed=0.5):
         del OBSTACLES[uid]
         if uid in OBSTACLES_IN_LAST_COLLISIONS:
             OBSTACLES_IN_LAST_COLLISIONS.remove(uid)
+            COROUTINES.append(explode(canvas,row+rows_size//2,column+cols_size//2))
 
 
 async def fill_orbit_with_garbage(canvas):
