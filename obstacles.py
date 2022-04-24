@@ -32,6 +32,8 @@ class Obstacle:
             (obj_size_rows, obj_size_columns),
         )
 
+    def rect(self):
+        return [self.row,self.column,self.rows_size,self.columns_size]
 
 def _get_bounding_box_lines(rows, columns):
 
