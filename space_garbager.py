@@ -155,7 +155,7 @@ async def year_counter():
 def load_frames(filelist):
     frames = []
     for file in filelist:
-        with open(os.path.join('files', file), 'r') as frame:
+        with open(os.path.join('animation_frames', file), 'r') as frame:
             frames.append(str(frame.read()))
     return frames
 
