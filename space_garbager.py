@@ -83,6 +83,7 @@ async def fly_rocket(canvas, position, frames):
         frame_position = position.copy()
         draw_frame(canvas, frame_position['row'], frame_position['col'], frame, False)
         await asyncio.sleep(0)
+        await asyncio.sleep(0)
         draw_frame(canvas, frame_position['row'], frame_position['col'], frame, True)
         for uid, obstale in OBSTACLES.items():
             if obstale.has_collision(position['row'], position['col'], height, width):
