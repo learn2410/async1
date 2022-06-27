@@ -201,13 +201,13 @@ def draw(canvas):
 
     rocket_frames = load_frames(['rocket_frame_1.txt', 'rocket_frame_2.txt'])
     rocket_height, rocket_width = get_max_sizes(rocket_frames)
-    rocket = {'row': (max_row - rocket_height) // 2,
+    rocket_parameters = {'row': (max_row - rocket_height) // 2,
               'col': (max_col - rocket_width) // 2,
               'row_speed': 0,
               'col_speed': 0,
               }
 
-    COROUTINES.append(fly_rocket(canvas, rocket, rocket_frames))
+    COROUTINES.append(fly_rocket(canvas, rocket_parameters, rocket_frames))
     COROUTINES.append(fill_orbit_with_garbage(canvas))
     COROUTINES.append(year_counter())
 
@@ -224,18 +224,18 @@ def draw(canvas):
         canvas.refresh()
         time.sleep(TIC_TIMEOUT)
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
-        rocket['row_speed'], rocket['col_speed'] = update_speed(rocket['row_speed'], rocket['col_speed'],
+        rocket_parameters['row_speed'], rocket_parameters['col_speed'] = update_speed(rocket_parameters['row_speed'], rocket_parameters['col_speed'],
                                                                 rows_direction, columns_direction)
-        rocket['row'] = min(
-            max(1, rocket['row'] + rocket['row_speed']),
+        rocket_parameters['row'] = min(
+            max(1, rocket_parameters['row'] + rocket_parameters['row_speed']),
             max_row - rocket_height
         )
-        rocket['col'] = min(
-            max(1, rocket['col'] + rocket['col_speed']),
+        rocket_parameters['col'] = min(
+            max(1, rocket_parameters['col'] + rocket_parameters['col_speed']),
             max_col - rocket_width
         )
-        if space_pressed and rocket['row'] > 2 and not GAME_PARAMS['gameover'] and GAME_PARAMS['have_gun']:
-            COROUTINES.append(fire(canvas, rocket['row'] - 1, rocket['col'] + 2))
+        if space_pressed and rocket_parameters['row'] > 2 and not GAME_PARAMS['gameover'] and GAME_PARAMS['have_gun']:
+            COROUTINES.append(fire(canvas, rocket_parameters['row'] - 1, rocket_parameters['col'] + 2))
 
 
 if __name__ == '__main__':
