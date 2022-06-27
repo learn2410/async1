@@ -151,7 +151,7 @@ async def fill_orbit_with_garbage(canvas,garbage_frames):
         await sleep(delay_tics)
 
 
-async def year_counter():
+async def increase_game_level():
     while True:
         await sleep(int(1.5 / TIC_TIMEOUT))
         old_garbage_delay_tics = get_garbage_delay_tics(GAME_PARAMS['year'])
@@ -224,7 +224,7 @@ def draw(canvas):
 
     COROUTINES.append(fly_rocket(canvas, rocket_parameters, rocket_frames))
     COROUTINES.append(fill_orbit_with_garbage(canvas,garbage_frames))
-    COROUTINES.append(year_counter())
+    COROUTINES.append(increase_game_level())
 
     while True:
         for cor in COROUTINES.copy():
