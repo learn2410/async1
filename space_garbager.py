@@ -134,7 +134,8 @@ def get_new_garbage_column(max_column, garbage_rows, garbage_cols):
 
 async def fill_orbit_with_garbage(canvas,garbage_frames):
     max_row, max_col = canvas.getmaxyx()
-    for uid in cycle((num for num in range(64000))):
+    limit_garbage_uids=64000
+    for uid in cycle((num for num in range(limit_garbage_uids))):
         delay_tics = get_garbage_delay_tics(GAME_PARAMS['year'])
         while not delay_tics:
             await sleep(1)
