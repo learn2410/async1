@@ -132,10 +132,7 @@ def get_new_garbage_column(max_column, garbage_rows, garbage_cols):
     return choice(candidates) if candidates else None
 
 
-async def fill_orbit_with_garbage(canvas):
-    garbage_frames = load_frames(
-        ['duck.txt', 'hubble.txt', 'lamp.txt', 'trash_large.txt',
-         'trash_small.txt', 'trash_xl.txt'])
+async def fill_orbit_with_garbage(canvas,garbage_frames):
     max_row, max_col = canvas.getmaxyx()
     for uid in cycle((num for num in range(64000))):
         delay_tics = get_garbage_delay_tics(GAME_PARAMS['year'])
@@ -220,9 +217,12 @@ def draw(canvas):
                          'row_speed': 0,
                          'col_speed': 0,
                          }
+    garbage_frames = load_frames(
+        ['duck.txt', 'hubble.txt', 'lamp.txt', 'trash_large.txt',
+         'trash_small.txt', 'trash_xl.txt'])
 
     COROUTINES.append(fly_rocket(canvas, rocket_parameters, rocket_frames))
-    COROUTINES.append(fill_orbit_with_garbage(canvas))
+    COROUTINES.append(fill_orbit_with_garbage(canvas,garbage_frames))
     COROUTINES.append(year_counter())
 
     while True:
