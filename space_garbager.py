@@ -164,10 +164,10 @@ async def year_counter():
         GAME_PARAMS['have_gun'] = GAME_PARAMS['year'] >= 2020
 
 
-def load_frames(filelist):
+def load_frames(filenames):
     frames = []
-    for file in filelist:
-        with open(os.path.join('animation_frames', file), 'r') as frame:
+    for filename in filenames:
+        with open(os.path.join('animation_frames', filename), 'r') as frame:
             frames.append(str(frame.read()))
     return frames
 
