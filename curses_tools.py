@@ -15,7 +15,7 @@ def read_controls(canvas):
         pressed_key_code = canvas.getch()
 
         if pressed_key_code == -1:
-            # https://docs.python.org/3/library/curses.html#curses.window.getch
+            #https://docs.python.org/3/library/curses.html#curses.window.getch
             break
 
         if pressed_key_code == UP_KEY_CODE:
@@ -37,7 +37,8 @@ def read_controls(canvas):
 
 
 def draw_frame(canvas, start_row, start_column, text, negative=False):
-    """Draw multiline text fragment on canvas, erase text instead of drawing if negative=True is specified."""
+    """Draw multiline text fragment on canvas, erase text instead of drawing
+     if negative=True is specified."""
     
     rows_number, columns_number = canvas.getmaxyx()
 
@@ -69,7 +70,8 @@ def draw_frame(canvas, start_row, start_column, text, negative=False):
 
 
 def get_frame_size(text):
-    """Calculate size of multiline text fragment, return pair — number of rows and colums."""
+    """Calculate size of multiline text fragment,
+     return pair — number of rows and colums."""
     
     lines = text.splitlines()
     rows = len(lines)
