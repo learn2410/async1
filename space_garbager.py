@@ -167,7 +167,7 @@ def load_frames(filenames):
     frames = []
     for filename in filenames:
         with open(os.path.join('animation_frames', filename), 'r') as frame:
-            frames.append(str(frame.read()))
+            frames.append(frame.read())
     return frames
 
 
