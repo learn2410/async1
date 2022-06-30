@@ -80,21 +80,22 @@ async def fire(canvas, start_row, start_column, rows_speed=-BULLET_SPEED,
 
 async def fly_rocket(canvas, position, frames):
     frame_gen = cycle(frames)
+    phase_gen = cycle(range(2))
+    row,col,frame = 1, 1, frame_gen.__next__()
     height, width = get_max_sizes(frames)
-    for frame in frame_gen:
-        frame_position = position.copy()
-        draw_frame(canvas, frame_position['row'], frame_position['col'], frame,
-                   False)
-        await asyncio.sleep(0)
-        await asyncio.sleep(0)
-        draw_frame(canvas, frame_position['row'], frame_position['col'], frame,
-                   True)
+    for phase in phase_gen:
+        if phase == 0:
+            draw_frame(canvas, row, col,frame,True)
+            row, col, = position['row'], position['col']
+            frame = frame_gen.__next__()
+            draw_frame(canvas, row, col, frame,False)
         for uid, obstale in OBSTACLES.items():
             if obstale.has_collision(position['row'], position['col'], height,
                                      width):
                 OBSTACLES_IN_LAST_COLLISIONS.append(uid)
                 GAME_PARAMS['gameover'] = True
                 return
+        await asyncio.sleep(0)
 
 
 async def fly_garbage(canvas, column, garbage_frame, garbage_uid, speed=0.5):
