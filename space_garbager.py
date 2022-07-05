@@ -80,21 +80,19 @@ async def fire(canvas, start_row, start_column, rows_speed=-BULLET_SPEED,
 
 async def fly_rocket(canvas, position, frames):
     frame_gen = cycle(frames)
-    phase_gen = cycle(range(2))
-    row,col,frame = 1, 1, frame_gen.__next__()
+    row,col,old_frame = 1, 1, frames[0]
     height, width = get_max_sizes(frames)
-    for phase in phase_gen:
-        if phase == 0:
-            draw_frame(canvas, row, col,frame,True)
-            row, col, = position['row'], position['col']
-            frame = frame_gen.__next__()
-            draw_frame(canvas, row, col, frame,False)
+    for frame in frame_gen:
+        draw_frame(canvas, row, col,old_frame,True)
         for uid, obstale in OBSTACLES.items():
             if obstale.has_collision(position['row'], position['col'], height,
                                      width):
                 OBSTACLES_IN_LAST_COLLISIONS.append(uid)
                 GAME_PARAMS['gameover'] = True
                 return
+        row, col, = position['row'], position['col']
+        old_frame = frame
+        draw_frame(canvas, row, col, frame,False)
         await asyncio.sleep(0)
 
 
@@ -212,7 +210,8 @@ def draw(canvas):
             unic_points.add((star_row, star_col))
     game_over_frame = load_frames(['game_over.txt'])[0]
 
-    rocket_frames = load_frames(['rocket_frame_1.txt', 'rocket_frame_2.txt'])
+    rocket_frames = load_frames(['rocket_frame_1.txt', 'rocket_frame_1.txt',
+                                 'rocket_frame_2.txt', 'rocket_frame_2.txt'])
     rocket_height, rocket_width = get_max_sizes(rocket_frames)
     rocket_parameters = {'row': (max_row - rocket_height) // 2,
                          'col': (max_col - rocket_width) // 2,
